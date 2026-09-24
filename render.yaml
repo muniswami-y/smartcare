@@ -1,0 +1,54 @@
+services:
+  # Backend API Web Service
+  - type: web
+    name: caresmart-backend
+    env: node
+    plan: standard
+    buildCommand: npm install && npm run build --workspace=@caresmart/database && cd database && npx prisma generate && cd .. && npm run build --workspace=@caresmart/backend
+    startCommand: node backend/dist/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: caresmart-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: caresmart-redis
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: FIELD_ENCRYPTION_KEY
+        generateValue: true
+      - key: PHONE_HASH_KEY
+        generateValue: true
+
+  # Frontend Web Application (Static Site)
+  - type: web
+    name: caresmart-frontend
+    env: static
+    buildCommand: npm install && npm run build --workspace=@caresmart/frontend
+    staticPublishPath: ./frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  # PostgreSQL 16 Database
+  - name: caresmart-postgres
+    plan: standard
+    databaseName: caresmart_prod
+    user: caresmart_admin
+
+  # Redis Cache & Rate Limiting
+  - type: redis
+    name: caresmart-redis
+    plan: standard
+    ipAllowList: []
