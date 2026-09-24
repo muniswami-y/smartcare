@@ -53,9 +53,9 @@ export const StaffLoginPage: React.FC = () => {
     }
   };
 
-  const setDemoRole = (roleEmail: string) => {
-    setEmail(roleEmail);
-    setPassword('Password123!');
+  const setDemoRole = (roleUser: string, rolePass: string = 'Password123!') => {
+    setEmail(roleUser);
+    setPassword(rolePass);
     setRequiresTotp(false);
   };
 
@@ -79,16 +79,16 @@ export const StaffLoginPage: React.FC = () => {
             )}
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">{t('auth.email')}</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">{t('auth.email')} / Username</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-slate-900/80 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-teal"
-                  placeholder="staff@caresmart.demo"
+                  placeholder="smartcare or staff@caresmart.demo"
                 />
               </div>
             </div>
@@ -152,8 +152,8 @@ export const StaffLoginPage: React.FC = () => {
               <button onClick={() => setDemoRole('radiologist.anita@caresmart.demo')} className="p-1.5 bg-slate-900/60 hover:bg-slate-700 rounded text-slate-300 text-left">
                 Radiologist
               </button>
-              <button onClick={() => setDemoRole('admin@caresmart.demo')} className="p-1.5 bg-slate-900/60 hover:bg-slate-700 rounded text-slate-300 text-left">
-                Admin (Full Access)
+              <button onClick={() => setDemoRole('smartcare', 'smartcare')} className="p-1.5 bg-brand-teal/20 hover:bg-brand-teal/30 border border-brand-teal/40 rounded text-brand-mint font-medium text-left">
+                Admin (smartcare / smartcare)
               </button>
               <button onClick={() => setDemoRole('manager.kavitha@caresmart.demo')} className="p-1.5 bg-slate-900/60 hover:bg-slate-700 rounded text-slate-300 text-left">
                 Manager (Aggregates)

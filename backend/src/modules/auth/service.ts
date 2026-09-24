@@ -11,8 +11,23 @@ const prisma = getDatabaseClient();
 
 export class AuthService {
   async staffLogin(email: string, password: string, totpToken?: string, ipAddress?: string, userAgent?: string) {
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const trimmed = email.trim();
+    const candidates = [
+      trimmed,
+      trimmed.toLowerCase(),
+      `${trimmed.toLowerCase()}@caresmart.demo`,
+      `${trimmed.toLowerCase()}@smartcare.local`,
+      'smartcare@caresmart.demo',
+      'admin@caresmart.demo'
+    ];
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: { in: candidates, mode: 'insensitive' } },
+          { email: trimmed }
+        ]
+      },
       include: {
         roles: { where: { revokedAt: null } },
         doctorProfile: true

@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const StaffLoginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
+  email: z.string().min(2),
+  password: z.string().min(4),
   totpToken: z.string().optional()
 });
 

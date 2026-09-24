@@ -4,6 +4,7 @@ import { validate } from '../../middleware/validate';
 import {
   RecordVitalsSchema,
   SaveDraftConsultationSchema,
+  CreateOrSaveConsultationSchema,
   LockConsultationSchema,
   AmendConsultationSchema,
   CreateDiagnosticOrderSchema
@@ -16,6 +17,14 @@ import { apiWriteLimiter } from '../../middleware/rateLimit';
 const router = Router();
 
 router.use(authenticate);
+
+// Create or save consultation / triage vitals (Doctor, Nurse, Admin)
+router.post(
+  '/',
+  requireRoles(StaffRole.DOCTOR, StaffRole.NURSE, StaffRole.ADMIN),
+  validate({ body: CreateOrSaveConsultationSchema }),
+  consultationController.createOrSave
+);
 
 // Nurse and Doctor vitals recording
 router.post(

@@ -17,22 +17,40 @@ export const RecordVitalsSchema = z.object({
 export const SaveDraftConsultationSchema = z.object({
   appointmentId: z.string(),
   patientId: z.string(),
-  doctorId: z.string(),
+  doctorId: z.string().optional(),
   chiefComplaint: z.string().optional(),
   historyOfPresentIllness: z.string().optional(),
   examinationNotes: z.string().optional(),
+  physicalExamination: z.string().optional(),
   diagnosis: z.string().optional(),
   icd10Code: z.string().optional(),
-  followUpDate: z.string().optional()
+  followUpDate: z.string().optional(),
+  vitals: z.any().optional()
+});
+
+export const CreateOrSaveConsultationSchema = z.object({
+  appointmentId: z.string().optional(),
+  patientId: z.string(),
+  doctorId: z.string().optional(),
+  chiefComplaint: z.string().optional(),
+  historyOfPresentIllness: z.string().optional(),
+  examinationNotes: z.string().optional(),
+  physicalExamination: z.string().optional(),
+  diagnosis: z.string().optional(),
+  icd10Code: z.string().optional(),
+  followUpDate: z.string().optional(),
+  vitals: z.any().optional()
 });
 
 export const LockConsultationSchema = z.object({
-  chiefComplaint: z.string().min(2),
+  chiefComplaint: z.string().min(2).optional(),
   historyOfPresentIllness: z.string().optional(),
-  examinationNotes: z.string().min(2),
-  diagnosis: z.string().min(2),
+  examinationNotes: z.string().min(2).optional(),
+  physicalExamination: z.string().optional(),
+  diagnosis: z.string().min(2).optional(),
   icd10Code: z.string().optional(),
-  followUpDate: z.string().optional()
+  followUpDate: z.string().optional(),
+  reason: z.string().optional()
 });
 
 export const AmendConsultationSchema = z.object({

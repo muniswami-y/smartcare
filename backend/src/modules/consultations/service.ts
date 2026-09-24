@@ -74,44 +74,106 @@ export class ConsultationService {
     return vitals;
   }
 
-  async saveDraftConsultation(data: any, doctorUserId: string) {
-    const existing = await prisma.consultation.findUnique({
-      where: { appointmentId: data.appointmentId }
-    });
+  async createOrSaveConsultation(data: any, staffUserId: string) {
+    let appointmentId = data.appointmentId;
+    const examNotes = data.examinationNotes || data.physicalExamination;
 
-    if (existing && existing.status === ConsultationStatus.LOCKED) {
-      throw new AppError('This consultation has already been finalized and locked.', 400, 'CONSULTATION_LOCKED');
+    // If no appointmentId provided, look for active appointment today
+    if (!appointmentId && data.patientId) {
+      const activeAppt = await prisma.appointment.findFirst({
+        where: {
+          patientId: data.patientId,
+          status: { in: [AppointmentStatus.CHECKED_IN, AppointmentStatus.CONFIRMED, AppointmentStatus.SCHEDULED] }
+        },
+        orderBy: { appointmentDate: 'desc' }
+      });
+      if (activeAppt) {
+        appointmentId = activeAppt.id;
+      }
     }
 
-    const count = await prisma.consultation.count();
-    const consultationCode = existing ? existing.consultationCode : `CNS-${Date.now().toString().slice(-6)}-${(count + 1).toString().padStart(4, '0')}`;
-
-    const consult = await prisma.consultation.upsert({
-      where: { appointmentId: data.appointmentId },
-      update: {
-        chiefComplaint: data.chiefComplaint,
-        historyOfPresentIllness: data.historyOfPresentIllness,
-        examinationNotes: data.examinationNotes,
-        diagnosis: data.diagnosis,
-        icd10Code: data.icd10Code,
-        followUpDate: data.followUpDate ? new Date(data.followUpDate) : null
-      },
-      create: {
-        consultationCode,
-        appointmentId: data.appointmentId,
-        patientId: data.patientId,
-        doctorId: data.doctorId,
-        chiefComplaint: data.chiefComplaint,
-        historyOfPresentIllness: data.historyOfPresentIllness,
-        examinationNotes: data.examinationNotes,
-        diagnosis: data.diagnosis,
-        icd10Code: data.icd10Code,
-        followUpDate: data.followUpDate ? new Date(data.followUpDate) : null,
-        status: ConsultationStatus.DRAFT
+    // Resolve doctorId
+    let doctorId = data.doctorId;
+    if (!doctorId && appointmentId) {
+      const appt = await prisma.appointment.findUnique({ where: { id: appointmentId } });
+      if (appt?.doctorId) doctorId = appt.doctorId;
+    }
+    if (!doctorId) {
+      const docProfile = await prisma.doctorProfile.findFirst({
+        where: { userId: staffUserId }
+      });
+      if (docProfile) {
+        doctorId = docProfile.id;
+      } else {
+        const firstDoc = await prisma.doctorProfile.findFirst();
+        doctorId = firstDoc?.id;
       }
-    });
+    }
 
-    return consult;
+    // If we have an appointmentId and doctorId, save or update the consultation
+    if (appointmentId && doctorId) {
+      const existing = await prisma.consultation.findUnique({
+        where: { appointmentId }
+      });
+
+      if (existing && existing.status === ConsultationStatus.LOCKED) {
+        throw new AppError('This consultation has already been finalized and locked.', 400, 'CONSULTATION_LOCKED');
+      }
+
+      const count = await prisma.consultation.count();
+      const consultationCode = existing ? existing.consultationCode : `CNS-${Date.now().toString().slice(-6)}-${(count + 1).toString().padStart(4, '0')}`;
+
+      const consult = await prisma.consultation.upsert({
+        where: { appointmentId },
+        update: {
+          chiefComplaint: data.chiefComplaint ?? existing?.chiefComplaint,
+          historyOfPresentIllness: data.historyOfPresentIllness ?? existing?.historyOfPresentIllness,
+          examinationNotes: examNotes ?? existing?.examinationNotes,
+          diagnosis: data.diagnosis ?? existing?.diagnosis,
+          icd10Code: data.icd10Code ?? existing?.icd10Code,
+          followUpDate: data.followUpDate ? new Date(data.followUpDate) : existing?.followUpDate
+        },
+        create: {
+          consultationCode,
+          appointmentId,
+          patientId: data.patientId,
+          doctorId,
+          chiefComplaint: data.chiefComplaint || 'Consultation evaluation',
+          historyOfPresentIllness: data.historyOfPresentIllness,
+          examinationNotes: examNotes,
+          diagnosis: data.diagnosis,
+          icd10Code: data.icd10Code,
+          followUpDate: data.followUpDate ? new Date(data.followUpDate) : null,
+          status: ConsultationStatus.DRAFT
+        }
+      });
+
+      // Record vitals if provided
+      if (data.vitals) {
+        await this.recordVitals({
+          patientId: data.patientId,
+          consultationId: consult.id,
+          ...data.vitals
+        }, staffUserId).catch((e: any) => console.warn('Could not record vitals alongside consultation:', e?.message));
+      }
+
+      return consult;
+    }
+
+    // Fallback: if only vitals provided (e.g. from Nurse Vitals page without appointment)
+    if (data.vitals && data.patientId) {
+      const vitals = await this.recordVitals({
+        patientId: data.patientId,
+        ...data.vitals
+      }, staffUserId);
+      return { id: vitals.id, ...vitals };
+    }
+
+    throw new AppError('Appointment and Doctor are required to create a consultation.', 400, 'MISSING_DATA');
+  }
+
+  async saveDraftConsultation(data: any, doctorUserId: string) {
+    return this.createOrSaveConsultation(data, doctorUserId);
   }
 
   async lockConsultation(id: string, data: any, doctorUserId: string) {
@@ -128,29 +190,33 @@ export class ConsultationService {
       throw new AppError('Consultation is already locked.', 400, 'ALREADY_LOCKED');
     }
 
+    const examNotes = data.examinationNotes || data.physicalExamination || consult.examinationNotes;
+
     const updated = await prisma.$transaction(async (tx) => {
       const locked = await tx.consultation.update({
         where: { id },
         data: {
-          chiefComplaint: data.chiefComplaint,
-          historyOfPresentIllness: data.historyOfPresentIllness,
-          examinationNotes: data.examinationNotes,
-          diagnosis: data.diagnosis,
-          icd10Code: data.icd10Code,
-          followUpDate: data.followUpDate ? new Date(data.followUpDate) : null,
+          chiefComplaint: data.chiefComplaint ?? consult.chiefComplaint,
+          historyOfPresentIllness: data.historyOfPresentIllness ?? consult.historyOfPresentIllness,
+          examinationNotes: examNotes,
+          diagnosis: data.diagnosis ?? consult.diagnosis,
+          icd10Code: data.icd10Code ?? consult.icd10Code,
+          followUpDate: data.followUpDate ? new Date(data.followUpDate) : consult.followUpDate,
           status: ConsultationStatus.LOCKED,
           lockedAt: new Date()
         }
       });
 
       // Mark appointment completed
-      await tx.appointment.update({
-        where: { id: consult.appointmentId },
-        data: {
-          status: AppointmentStatus.COMPLETED,
-          consultCompletedAt: new Date()
-        }
-      });
+      if (consult.appointmentId) {
+        await tx.appointment.update({
+          where: { id: consult.appointmentId },
+          data: {
+            status: AppointmentStatus.COMPLETED,
+            consultCompletedAt: new Date()
+          }
+        });
+      }
 
       return locked;
     });

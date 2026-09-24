@@ -20,6 +20,7 @@ async function cleanDataKeepAdmin() {
   let admin = await prisma.user.findFirst({
     where: {
       OR: [
+        { email: 'smartcare@caresmart.demo' },
         { email: 'admin@caresmart.demo' },
         { roles: { some: { role: StaffRole.ADMIN } } }
       ]
@@ -27,14 +28,14 @@ async function cleanDataKeepAdmin() {
     include: { roles: true }
   });
 
-  const passwordHash = await argon2.hash('Password123!');
+  const passwordHash = await argon2.hash('smartcare');
 
   if (!admin) {
     console.log('No existing admin found. Creating primary admin user...');
     admin = await prisma.user.create({
       data: {
-        email: 'admin@caresmart.demo',
-        fullName: 'Dr. System Administrator (Admin)',
+        email: 'smartcare@caresmart.demo',
+        fullName: 'CareSmart Administrator (Admin)',
         passwordHash,
         phone: '+919848011111',
         phoneHash: 'admin_phone_hash_001',
@@ -46,10 +47,12 @@ async function cleanDataKeepAdmin() {
       include: { roles: true }
     });
   } else {
-    // Ensure password is reset to known Password123! and active
+    // Ensure password is reset to known smartcare and active
     await prisma.user.update({
       where: { id: admin.id },
       data: {
+        email: 'smartcare@caresmart.demo',
+        fullName: 'CareSmart Administrator (Admin)',
         passwordHash,
         status: UserStatus.ACTIVE,
         mustChangePassword: false,

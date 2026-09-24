@@ -2,6 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import { consultationService } from './service';
 
 export class ConsultationController {
+  async createOrSave(req: Request, res: Response, next: NextFunction) {
+    try {
+      const consult = await consultationService.createOrSaveConsultation(req.body, req.user!.id);
+      return res.status(201).json({ success: true, data: consult, id: (consult as any).id });
+    } catch (err) {
+      return next(err);
+    }
+  }
+
   async recordVitals(req: Request, res: Response, next: NextFunction) {
     try {
       const vitals = await consultationService.recordVitals(req.body, req.user!.id);
