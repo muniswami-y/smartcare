@@ -3,9 +3,9 @@ services:
   - type: web
     name: caresmart-backend
     env: node
-    plan: standard
+    plan: starter
     buildCommand: npm install && npm run build --workspace=@caresmart/database && cd database && npx prisma generate && cd .. && npm run build --workspace=@caresmart/backend
-    startCommand: node backend/dist/server.js
+    startCommand: cd database && npx prisma db push --skip-generate && npm run seed:demo && cd .. && node backend/dist/server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -28,13 +28,19 @@ services:
         generateValue: true
       - key: PHONE_HASH_KEY
         generateValue: true
+      - key: CORS_ORIGIN
+        value: https://caresmart-frontend.onrender.com
 
   # Frontend Web Application (Static Site)
   - type: web
     name: caresmart-frontend
     env: static
+    plan: starter
     buildCommand: npm install && npm run build --workspace=@caresmart/frontend
     staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://caresmart-backend.onrender.com/api/v1
     routes:
       - type: rewrite
         source: /*
@@ -43,12 +49,12 @@ services:
 databases:
   # PostgreSQL 16 Database
   - name: caresmart-postgres
-    plan: standard
+    plan: starter
     databaseName: caresmart_prod
     user: caresmart_admin
 
   # Redis Cache & Rate Limiting
   - type: redis
     name: caresmart-redis
-    plan: standard
+    plan: starter
     ipAllowList: []

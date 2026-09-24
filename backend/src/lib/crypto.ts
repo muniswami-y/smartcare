@@ -3,10 +3,24 @@ import argon2 from 'argon2';
 import { authenticator } from 'otplib';
 import { config } from '../config';
 
+function getFieldEncryptionKey(): Buffer {
+  if (config.FIELD_ENCRYPTION_KEY.length === 64 && /^[0-9a-fA-F]+$/.test(config.FIELD_ENCRYPTION_KEY)) {
+    return Buffer.from(config.FIELD_ENCRYPTION_KEY, 'hex');
+  }
+  return crypto.createHash('sha256').update(config.FIELD_ENCRYPTION_KEY).digest();
+}
+
+function getPhoneHashKey(): Buffer {
+  if (config.PHONE_HASH_KEY.length === 64 && /^[0-9a-fA-F]+$/.test(config.PHONE_HASH_KEY)) {
+    return Buffer.from(config.PHONE_HASH_KEY, 'hex');
+  }
+  return crypto.createHash('sha256').update(config.PHONE_HASH_KEY).digest();
+}
+
 // Keyed HMAC-SHA256 for searchable phone numbers
 export function hashPhone(phone: string): string {
   const normalized = phone.replace(/[\s\-\(\)]/g, '');
-  return crypto.createHmac('sha256', Buffer.from(config.PHONE_HASH_KEY, 'hex')).update(normalized).digest('hex');
+  return crypto.createHmac('sha256', getPhoneHashKey()).update(normalized).digest('hex');
 }
 
 // SHA-256 hash helper
@@ -18,7 +32,7 @@ export function sha256(data: string): string {
 export function encryptSensitiveField(plainText: string): string {
   if (!plainText) return plainText;
   const iv = crypto.randomBytes(12);
-  const key = Buffer.from(config.FIELD_ENCRYPTION_KEY, 'hex');
+  const key = getFieldEncryptionKey();
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   let encrypted = cipher.update(plainText, 'utf8', 'hex');
   encrypted += cipher.final('hex');
@@ -34,7 +48,7 @@ export function decryptSensitiveField(cipherText: string): string {
 
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');
-    const key = Buffer.from(config.FIELD_ENCRYPTION_KEY, 'hex');
+    const key = getFieldEncryptionKey();
 
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(authTag);

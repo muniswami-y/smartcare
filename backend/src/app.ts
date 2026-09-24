@@ -44,7 +44,18 @@ export function createApp() {
   // CORS Configuration
   app.use(
     cors({
-      origin: config.CORS_ORIGIN,
+      origin: (requestOrigin, callback) => {
+        if (!requestOrigin) return callback(null, true);
+        if (
+          requestOrigin.includes('localhost') ||
+          requestOrigin.includes('127.0.0.1') ||
+          requestOrigin.endsWith('.onrender.com') ||
+          requestOrigin === config.CORS_ORIGIN
+        ) {
+          return callback(null, true);
+        }
+        return callback(null, true);
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
     })
