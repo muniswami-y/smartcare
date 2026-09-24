@@ -1,0 +1,38 @@
+[
+  {
+    "drug1": "Tramadol",
+    "drug2": "SSRI",
+    "severity": "MAJOR",
+    "description": "Risk of serotonin syndrome and CNS toxicity. Avoid concurrent administration."
+  },
+  {
+    "drug1": "Aspirin",
+    "drug2": "Ibuprofen",
+    "severity": "MODERATE",
+    "description": "Concurrent NSAID use increases risk of severe GI ulceration and bleeding."
+  },
+  {
+    "drug1": "Metformin",
+    "drug2": "Iodinated Contrast",
+    "severity": "MAJOR",
+    "description": "Risk of contrast-induced nephropathy and lactic acidosis. Withhold metformin 48h prior."
+  },
+  {
+    "drug1": "Amoxicillin",
+    "drug2": "Methotrexate",
+    "severity": "MAJOR",
+    "description": "Penicillins reduce renal clearance of methotrexate, increasing toxic risk."
+  },
+  {
+    "drug1": "Atorvastatin",
+    "drug2": "Clarithromycin",
+    "severity": "MAJOR",
+    "description": "Significant elevation in statin plasma levels; high risk of rhabdomyolysis."
+  },
+  {
+    "drug1": "Ciprofloxacin",
+    "drug2": "Antacid",
+    "severity": "MODERATE",
+    "description": "Chelation with polyvalent cations severely impairs ciprofloxacin absorption."
+  }
+]
