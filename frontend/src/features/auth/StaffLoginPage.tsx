@@ -47,8 +47,7 @@ export const StaffLoginPage: React.FC = () => {
       else if (roles.includes('RADIOLOGIST')) navigate('/imaging');
       else navigate('/reception');
     } catch (err: any) {
-      if (err instanceof ApiError) setError(err.message);
-      else setError('Login failed. Please check your credentials.');
+      setError(err?.message || 'Login failed. Please check your server connection and credentials.');
     } finally {
       setLoading(false);
     }
